@@ -1,0 +1,119 @@
+#
+# See slapd-config(5) for details on configuration options.
+# This file should NOT be world readable.
+#
+
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+olcArgsFile: /var/run/openldap/slapd.args
+olcPidFile: /var/run/openldap/slapd.pid
+olcRequires: LDAPv3
+
+# Do not enable referrals until AFTER you have a working directory
+# service AND an understanding of referrals.
+#olcReferral:	ldap://root.openldap.org
+
+# Sample security restrictions
+#	Require integrity protection (prevent hijacking)
+#	Require 112-bit (3DES or better) encryption for updates
+#	Require 64-bit encryption for simple bind
+#olcSecurity: ssf=1 update_ssf=112 simple_bind=64
+
+#
+# Load dynamic backend modules:
+#
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulepath:	/usr/local/openldap/libexec/openldap
+olcModuleload:	back_hdb.la
+olcModuleload:	back_monitor.la
+olcModuleload:	refint.la
+olcModuleload:	memberof.la
+#olcModuleload:	syncprov.la
+#olcModuleload:	ppolicy.la
+
+#
+# Schema settings
+#
+dn: cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: schema
+
+include: file:///srv/conf/openldap/schema/core.ldif
+#include: file:///srv/conf/openldap/schema/ppolicy.ldif
+
+#
+# Frontend settings, olcDatabase: -1
+#
+dn: olcDatabase=frontend,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcFrontendConfig
+olcDatabase: frontend
+olcAccess: to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage by * none
+olcAccess: to *  by dn.base="uid=bind,ou=manager,dc=example,dc=com" read by dn.base="uid=manag,ou=manager,dc=example,dc=com" write  by anonymous auth  by self write  by users read
+
+#
+# Configuration database, olcDatabase: 0
+#
+dn: olcDatabase=config,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: config
+olcAccess: to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage by * none
+
+#
+# Server status monitoring, olcDatabase: 1
+#
+dn: olcDatabase=monitor,cn=config
+objectClass: olcDatabaseConfig
+olcDatabase: monitor
+olcAccess: to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" read by dn.base="cn=root,dc=example,dc=com" read by * none
+
+#
+# Backend database definitions, olcDatabase: 2
+#
+dn: olcDatabase=hdb,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcHdbConfig
+olcDatabase: hdb
+olcSuffix: dc=example,dc=com
+olcRootDN: cn=root,dc=example,dc=com
+olcDbDirectory:	/srv/data/openldap
+olcDbIndex: objectClass eq,pres
+olcDbIndex: uid,ou,cn,mail,surname,givenname eq,pres,sub
+
+#
+# Add memberof overlay and refint
+#
+dn: olcOverlay=memberof,olcDatabase={2}hdb,cn=config
+objectClass: olcConfig
+objectClass: olcMemberOf
+objectClass: olcOverlayConfig
+objectClass: top
+olcOverlay: memberof
+olcMemberOfDangling: ignore
+olcMemberOfRefInt: TRUE
+olcMemberOfGroupOC: groupOfNames
+olcMemberOfMemberAD: member
+olcMemberOfMemberOfAD: memberOf
+
+dn: olcOverlay=refint,olcDatabase={2}hdb,cn=config
+objectClass: olcConfig
+objectClass: olcOverlayConfig
+objectClass: olcRefintConfig
+objectClass: top
+olcOverlay: refint
+olcRefintAttribute: memberof uniqueMember owner
+
+#
+# Add ppolicy overlay and syncprov
+#
+#dn: olcOverlay=ppolicy,olcDatabase={2}hdb,cn=config
+#objectClass: olcConfig
+#objectClass: olcOverlayConfig
+#objectClass: olcPPolicyConfig
+#objectClass: top
+#olcOverlay: ppolicy
+#olcPPolicyDefault: cn=default,ou=Users,dc=hbjc,dc=com
+#olcPPolicyHashCleartext: TRUE
