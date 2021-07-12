@@ -171,8 +171,8 @@ $ docker run -d -e "APP_ENV_KEY_NAME=key_value" colovu/openldap
 - `LDAP_ADMIN_SURNAME`：默认值：**false**。设置 Admin 用户姓氏
 - `LDAP_PORT_NUMBER`：默认值：**8389**。非加密方式通讯端口
 - `LDAP_LDAPS_PORT_NUMBER`：默认值：**8636**。TLS 加密方式通讯端口
-- `LDAP_EXTRA_SCHEMAS`：默认值：**cosine,inetorgperson,nis**。设置加载的 Schema 文件
-- `LDAP_EXTRA_MODULES`：默认值：**accesslog**。设置加载的动态库文件(back_hdb / back_monitor / refint / memberof 默认强制加载)
+- `LDAP_EXTRA_SCHEMAS`：默认值：**无**。设置加载的 Schema 文件(core / cosine / inetorgperson / nis / samba 默认强制加载)
+- `LDAP_EXTRA_MODULES`：默认值：**无**。设置加载的动态库文件(back_hdb / back_monitor / refint / memberof / accesslog 默认强制加载)
 - `LDAP_CUSTOM_LDIF_DIR`：默认值：**initdb.d/ldifs**。设置用户自定义 LDIF 文件相对路径
 - `LDAP_CUSTOM_SCHEMA_DIR`：默认值：**false**。设置用户自定义 Schema 文件相对路径
 - `LDAP_ULIMIT_NOFILES`：默认值：**1024**。设置默认的系统最大打开文件句柄数,用于节省内存
