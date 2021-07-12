@@ -45,9 +45,45 @@ olcRootPW: $LDAP_ENCRYPTED_ROOT_PASSWORD
 dn: olcDatabase={1}monitor,cn=config
 changetype: modify
 replace: olcAccess
-olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=external, cn=auth" read by dn.base="${LDAP_ROOT_DN}" read by * none
+olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=$(id -u),cn=peercred,cn=external, cn=auth" read 
+    by dn.base="${LDAP_ADMIN_DN}" read 
+    by * none
 EOF
+
     debug_execute ldapmodify -Y EXTERNAL -H "ldapi:///" -f "${APP_CONF_DIR}/rootdn.ldif"
+}
+
+openldap_add_default_policy() {
+# 根据容器参数，设置配置文件
+    LOG_I "Add default global access control policy"
+
+cat > "${APP_CONF_DIR}/default_policy.ldif" << EOF
+# Add default global access control policy
+dn: olcDatabase={-1}frontend,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: to attrs="userPassword,sambaLMPassword,sambaNTPassword,sambaPwdLastSet,sambaPwdMustChange,sambaPwdCanChange,shadowMax,shadowExpire" 
+    by dn.base="gidNumber=0+uidNumber=$(id -u),cn=peercred,cn=external,cn=auth" manage 
+    by dn.base="${LDAP_BIND_DN}" read 
+    by dn.base="${LDAP_ADMIN_DN}" write 
+    by anonymous auth 
+    by self write 
+    by * none
+
+dn: olcDatabase={-1}frontend,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: to * 
+    by dn.base="gidNumber=0+uidNumber=$(id -u),cn=peercred,cn=external,cn=auth" manage 
+    by dn.base="${LDAP_BIND_DN}" read 
+    by dn.base="${LDAP_ADMIN_DN}" write 
+    by anonymous auth 
+    by self write 
+    by * none
+
+EOF
+
+    debug_execute ldapmodify -Y EXTERNAL -H "ldapi:///" -f "${APP_CONF_DIR}/default_policy.ldif"
 }
 
 # 生成Admin账户用户信息
@@ -69,23 +105,25 @@ ou: Manager
 
 # User Admin creation
 dn: uid=$LDAP_ADMIN_UID,ou=Manager,$LDAP_ROOT
-objectclass: inetOrgPerson
+objectClass: inetOrgPerson
 cn: $LDAP_ADMIN_GIVEN_NAME $LDAP_ADMIN_SURNAME
 sn: $LDAP_ADMIN_SURNAME
 uid: $LDAP_ADMIN_UID
-userpassword: $LDAP_ENCRYPTED_ADMIN_PASSWORD
+userPassword: $LDAP_ENCRYPTED_ADMIN_PASSWORD
 mail: $LDAP_ADMIN_MAIL
 
 # User Binder creation
 dn: uid=$LDAP_BIND_UID,ou=Manager,$LDAP_ROOT
-objectclass: inetOrgPerson
+objectClass: inetOrgPerson
 cn: $LDAP_BIND_GIVEN_NAME $LDAP_BIND_SURNAME
 sn: $LDAP_BIND_SURNAME
 uid: $LDAP_BIND_UID
-userpassword: $LDAP_ENCRYPTED_BIND_PASSWORD
+userPassword: $LDAP_ENCRYPTED_BIND_PASSWORD
 EOF
 
     debug_execute ldapadd -f "${APP_CONF_DIR}/admin.ldif" -H "ldapi:///" -D "$LDAP_ROOT_DN" -w "$LDAP_ROOT_PASSWORD"
+
+    openldap_add_default_policy
 }
 
 # 生成自定义账户用户信息
@@ -247,6 +285,7 @@ openldap_start_server_bg() {
     if openldap_is_server_not_running; then
 
         LOG_I "Starting ${APP_NAME} in background..."
+        LOG_D "${command} ${flags[@]}"
 
         ulimit -n "$LDAP_ULIMIT_NOFILES"
 
@@ -305,7 +344,8 @@ openldap_is_server_not_running() {
 openldap_add_modules() {
     LOG_I "Adding LDAP extra modules"
 
-    read -r -a modules <<< "$(tr ',;' ' ' <<< "${LDAP_EXTRA_MODULES}")"
+    #read -r -a modules <<< "$(tr ',;' ' ' <<< "${LDAP_EXTRA_MODULES}")"
+    modules=($(echo "${LDAP_EXTRA_MODULES[*]} accesslog" | tr ',;' ' ' | sed 's/ /\n/g' | sort | uniq) )
     cat > "${APP_CONF_DIR}/modules.ldif" << EOF
 dn: cn=module{0},cn=config
 add: olcModuleLoad
@@ -324,7 +364,8 @@ EOF
 openldap_add_schemas() {
     LOG_I "Adding LDAP extra schemas"
 
-    read -r -a schemas <<< "$(tr ',;' ' ' <<< "${LDAP_EXTRA_SCHEMAS}")"
+    #read -r -a schemas <<< "$(tr ',;' ' ' <<< "${LDAP_EXTRA_SCHEMAS}")"
+    schemas=($(echo "${LDAP_EXTRA_SCHEMAS[*]} cosine inetorgperson nis samba" | tr ',;' ' ' | sed 's/ /\n/g' | sort | uniq) )
     for schema in "${schemas[@]}"; do
         LOG_D "Add schema: ${schema}.ldif"
         debug_execute ldapadd -Y EXTERNAL -H "ldapi:///" -f "${APP_CONF_DIR}/schema/${schema}.ldif"

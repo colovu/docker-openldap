@@ -36,8 +36,8 @@ export APP_CERT_DIR="/srv/cert/${APP_NAME}"
 export LDAP_PORT_NUMBER="${LDAP_PORT_NUMBER:-8389}"
 export LDAP_LDAPS_PORT_NUMBER="${LDAP_LDAPS_PORT_NUMBER:-8636}"
 
-export LDAP_EXTRA_SCHEMAS="${LDAP_EXTRA_SCHEMAS:-cosine,inetorgperson,nis}"
-export LDAP_EXTRA_MODULES="${LDAP_EXTRA_MODULES:-accesslog}"
+export LDAP_EXTRA_SCHEMAS="${LDAP_EXTRA_SCHEMAS:-}"
+export LDAP_EXTRA_MODULES="${LDAP_EXTRA_MODULES:-}"
 
 export LDAP_CUSTOM_LDIF_DIR="${LDAP_CUSTOM_LDIF_DIR:-initdb.d/ldifs}"
 export LDAP_CUSTOM_SCHEMA_DIR="${LDAP_CUSTOM_SCHEMA_FILE:-initdb/schema}"
@@ -85,9 +85,13 @@ export LDAP_ARGS_FILE="${APP_RUN_DIR}/slapd.args"
 export LDAP_DAEMON_USER="slapd"
 export LDAP_DAEMON_GROUP="slapd"
 
-export LDAP_ENCRYPTED_ROOT_PASSWORD="$(echo -n $LDAP_ROOT_PASSWORD | slappasswd -n -T /dev/stdin)"
-export LDAP_ENCRYPTED_BIND_PASSWORD="$(echo -n $LDAP_BIND_PASSWORD | slappasswd -n -T /dev/stdin)"
-export LDAP_ENCRYPTED_ADMIN_PASSWORD="$(echo -n $LDAP_ADMIN_PASSWORD | slappasswd -n -T /dev/stdin)"
+#export LDAP_ENCRYPTED_ROOT_PASSWORD="$(echo -n $LDAP_ROOT_PASSWORD | slappasswd -n -T /dev/stdin)"
+#export LDAP_ENCRYPTED_BIND_PASSWORD="$(echo -n $LDAP_BIND_PASSWORD | slappasswd -n -T /dev/stdin)"
+#export LDAP_ENCRYPTED_ADMIN_PASSWORD="$(echo -n $LDAP_ADMIN_PASSWORD | slappasswd -n -T /dev/stdin)"
+export LDAP_ENCRYPTED_ROOT_PASSWORD="$(slappasswd -s $LDAP_ROOT_PASSWORD)"
+export LDAP_ENCRYPTED_BIND_PASSWORD="$(slappasswd -s $LDAP_BIND_PASSWORD)"
+export LDAP_ENCRYPTED_ADMIN_PASSWORD="$(slappasswd -s $LDAP_ADMIN_PASSWORD)"
+
 
 # 个性化变量
 
